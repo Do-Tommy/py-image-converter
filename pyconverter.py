@@ -4,6 +4,9 @@ from tkinter import ttk
 from PIL import Image
 import os
 
+input_path = ""
+output_path = ""
+
 def convert_image(input_path, output_path, output_format):
     try:
         # Open the image file
@@ -14,29 +17,46 @@ def convert_image(input_path, output_path, output_format):
     except Exception as e:
         print(f"Error during conversion: {e}")
 
-def select_file():
+def select_file(input_label):
+    global input_path
+
     root = tk.Tk()
     root.withdraw()
 
     # Ask the user to select a file
-    file_path = filedialog.askopenfilename(
+    input_path = filedialog.askopenfilename(
         title="Select an image file",
-        filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.gif")]
+        filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.gif;*.webp")]
     )
+    input_label.config(text=f"Input File: {os.path.basename(input_path)}")
 
-    return file_path
 
 def select_output_path(output_label):
+    global output_path
+
     root = tk.Tk()
     root.withdraw()
 
     # Ask the user to select a folder for output
     output_path = filedialog.askdirectory(title="Select output folder")
+    output_label.config(text=f"Output Folder: {output_path}")
     
-    # Update the label with the selected output folder
-    output_label.config(text=r"Output Folder: {}".format(output_path))
 
-    return output_path
+def convert_button_click(output_format, output_label):
+    global input_path
+    global output_path
+
+    if not input_path:
+        output_label.config(text="No file selected.")
+        return
+
+    if not output_path:
+        output_label.config(text="No output folder selected.")
+        return
+
+    output_file = os.path.join(output_path, f"{os.path.splitext(os.path.basename(input_path))[0]}.{output_format.lower()}")
+
+    convert_image(input_path, output_file, output_format)
 
 def create_gui():
     # Create the main window
@@ -44,8 +64,8 @@ def create_gui():
     main_window.title("Image Converter")
 
     # Set window size and position in the center
-    window_width = 400
-    window_height = 200
+    window_width = 600
+    window_height = 400
 
     screen_width = main_window.winfo_screenwidth()
     screen_height = main_window.winfo_screenheight()
@@ -59,52 +79,37 @@ def create_gui():
     ttk_style = ttk.Style()
     ttk_style.theme_use('clam')  # Change 'clam' to other available themes if desired
 
+    
     # Function to handle the conversion button click
-    def convert_button_click():
-        input_file = select_file()
+    input_label = ttk.Label(main_window, text="Select Input File:")
+    input_label.pack(pady=5)
 
-        if not input_file:
-            output_label.config(text="No file selected.")
-            return
-
-        output_folder = output_label.cget("text")[15:]  # Extract the output folder from the label text
-
-        if not output_folder:
-            output_label.config(text="No output folder selected.")
-            return
-
-        output_format = format_var.get()
-        output_file = os.path.join(output_folder, r"{}.{}".format(os.path.splitext(os.path.basename(input_file))[0], output_format.lower()))
-
-        convert_image(input_file, output_file, output_format)
-        output_label.config(text=r"Conversion successful: {}".format(output_file))
-
-   
+    select_file_button = ttk.Button(main_window, text="Browse", command=lambda: select_file(input_label))
+    select_file_button.pack(pady=5)
+    
 
     # Output folder button
-    output_label = ttk.Label(main_window, text=r"Output Folder: [not selected]")
-    output_label.pack()
+    output_label = ttk.Label(main_window, text="Output Folder: [not selected]")
+    output_label.pack(pady=5)
 
-    def output_folder_button_click():
-        output_path = select_output_path(output_label)
-    
-    output_folder_button = ttk.Button(main_window, text="Select Output Folder", command=output_folder_button_click)
-    output_folder_button.pack()
+    select_output_button = ttk.Button(main_window, text="Select Output Folder", command=lambda: select_output_path(output_label))
+    select_output_button.pack(pady=5)
 
-    input_label = ttk.Label(main_window, text="Select Input File:")
-    input_label.pack()
+    output_label.config(text=f"Conversion successful: {output_path}")
 
-    convert_button = ttk.Button(main_window, text="Convert", command=convert_button_click)
-    convert_button.pack()
     # Dropdown for selecting the output format
     format_var = tk.StringVar(main_window)
     format_var.set("PNG")  # Default format
 
     format_label = ttk.Label(main_window, text="Select Output Format:")
-    format_label.pack()
+    format_label.pack(pady=5)
 
     format_dropdown = ttk.Combobox(main_window, textvariable=format_var, values=["PNG", "JPEG", "GIF"])
-    format_dropdown.pack()
+    format_dropdown.pack(pady=5)
+
+    # Convert button
+    convert_button = ttk.Button(main_window, text="Convert", command=lambda: convert_button_click(format_var.get(), output_label))
+    convert_button.pack(pady=5)
 
     # Start the GUI event loop
     main_window.mainloop()
